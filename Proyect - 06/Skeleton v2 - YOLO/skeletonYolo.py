@@ -71,12 +71,14 @@ def get_or_extract_pose(name, video_path):
 
 # === CARGA DE POSES DE REFERENCIA ===
 print("Cargando poses de referencia...")
-walking_pose = get_or_extract_pose("caminando", "walking.mp4")
-sitting_pose = get_or_extract_pose("sentado", "sit.mp4")
+walking_pose = get_or_extract_pose("caminando", "videos/walking.mp4")
+sitting_pose = get_or_extract_pose("sentado", "videos/sit.mp4")
+aim_pose = get_or_extract_pose("sentado", "videos/aim.mp4")
 
 reference_poses = {
     "Caminando": walking_pose,
     "Sentado": sitting_pose,
+    "Apuntando": aim_pose
 }
 
 # === DETECCIÓN EN TIEMPO REAL ===
