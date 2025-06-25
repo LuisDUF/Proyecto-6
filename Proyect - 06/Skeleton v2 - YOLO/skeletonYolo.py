@@ -1,16 +1,29 @@
 import cv2
 import numpy as np
 import os
+import torch
 from ultralytics import YOLO
+from sklearn.neighbors import KNeighborsClassifier
+import joblib
 
 # === CONFIGURACIÓN ===
-POSES_DIR = "Proyect - 06\Skeleton v2 - YOLO\poses_guardadas"
+POSES_DIR = "Proyect - 06/Skeleton v2 - YOLO/poses_guardadas"
 os.makedirs(POSES_DIR, exist_ok=True)
 
-model = YOLO("yolov8s-pose.pt")  # Cambia por yolov8n-pose.pt si deseas
+# === DISPOSITIVO (GPU si está disponible) ===
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
+print(f"[INFO] Usando dispositivo: {device.upper()}")
 
-# === CONTROL DE VISUALIZACIÓN ===
-mostrar_puntos = False  # 🔄 CAMBIA A False PARA OCULTAR PUNTOS
+# === CARGA DEL MODELO CON GPU ===
+model = YOLO("yolo11s-pose.pt")
+model.to(device)
+
+mostrar_puntos = True  # Cambia a True para mostrar puntos
+usar_comparacion_npy = True  # False para usar clasificador automático
+
+# === CARGA DEL CLASIFICADOR SI ES NECESARIO ===
+if not usar_comparacion_npy:
+    clf = joblib.load("clasificador_acciones.joblib")
 
 # === FUNCIONES AUXILIARES ===
 
@@ -45,10 +58,10 @@ def extract_pose_from_video(video_path):
         if not ret:
             break
 
-        results = model(frame, verbose=False)[0]
+        results = model(frame, verbose=False, device=device)[0]
 
         if results.keypoints and len(results.keypoints.xy) > 0:
-            keypoints = results.keypoints.xy[0].cpu().numpy()  # Primera persona
+            keypoints = results.keypoints.xy[0].cpu().numpy()
             norm_kps = normalize_keypoints(keypoints, frame.shape)
             all_keypoints.append(norm_kps)
 
@@ -70,35 +83,43 @@ def get_or_extract_pose(name, video_path):
     return pose
 
 # === CARGA DE POSES DE REFERENCIA ===
-print("Cargando poses de referencia...")
-walking_pose = get_or_extract_pose("caminando", "videos/walking.mp4")
-sitting_pose = get_or_extract_pose("sentado", "videos/sit.mp4")
-aim_pose = get_or_extract_pose("sentado", "videos/aim.mp4")
+reference_poses = {}
+if usar_comparacion_npy:
+    print("Cargando poses de referencia...")
+    walking_pose = get_or_extract_pose("caminando", "videos/walking.mp4")
+    walkingup_pose = get_or_extract_pose("caminando_arriba", "Proyect - 06/videos/walking_up.mp4")
+    walking01_pose = get_or_extract_pose("caminando_01", "Proyect - 06/videos/walking_01.mp4")
 
-reference_poses = {
-    "Caminando": walking_pose,
-    "Sentado": sitting_pose,
-    "Apuntando": aim_pose
-}
+    reference_poses = {
+        "Caminando": walking_pose,
+        "Caminando Arriba": walkingup_pose,
+        "Caminando 01": walking01_pose        
+    }
 
 # === DETECCIÓN EN TIEMPO REAL ===
-cap = cv2.VideoCapture("video_02.mp4")  # Cambia a archivo si deseas usar video
+cap = cv2.VideoCapture("Proyect - 06/videos/walking_01.mp4")  # Usa 0 para cámara
 
 while cap.isOpened():
     ret, frame = cap.read()
     if not ret:
         break
 
-    results = model(frame, verbose=False)[0]
+    results = model(frame, verbose=False, device=device)[0]
     output = frame.copy()
 
     for i, kp in enumerate(results.keypoints.xy):
         keypoints = kp.cpu().numpy()
         keypoints_norm = normalize_keypoints(keypoints, frame.shape)
 
-        distances = {label: compare_pose(keypoints_norm, ref_pose)
-                     for label, ref_pose in reference_poses.items()}
-        action = min(distances, key=distances.get)
+        if usar_comparacion_npy:
+            distances = {
+                label: compare_pose(keypoints_norm, ref_pose)
+                for label, ref_pose in reference_poses.items()
+            }
+            action = min(distances, key=distances.get)
+        else:
+            flat = keypoints_norm.flatten().reshape(1, -1)
+            action = clf.predict(flat)[0]
 
         draw_keypoints(output, keypoints)
 
@@ -107,9 +128,9 @@ while cap.isOpened():
             cv2.putText(output, f'{action}', (x1, y1 - 10),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 0), 2)
 
-    cv2.imshow("YOLOv8 Pose - Tiempo Real", output)
+    cv2.imshow("YOLOv8 Pose - Comparación vs Clasificador", output)
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
 cap.release()
-cv2.destroyAllWindows()
+cv2.destroyAllWindows() 
