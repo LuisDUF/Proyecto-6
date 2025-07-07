@@ -91,9 +91,20 @@ reference_poses = {
 #plaza mexico
 #cap = cv2.VideoCapture("https://manifest.googlevideo.com/api/manifest/hls_playlist/expire/1751511017/ei/iZtlaMvZOoWOpfgPup7KyAo/ip/2806:266:487:b56:42b:e097:c410:5f98/id/e9T0L_POAOk.36/itag/96/source/yt_live_broadcast/requiressl/yes/ratebypass/yes/live/1/sgoap/gir%3Dyes%3Bitag%3D140/sgovp/gir%3Dyes%3Bitag%3D137/rqh/1/hls_chunk_host/rr5---sn-9gv7zn7e.googlevideo.com/xpc/EgVo2aDSNQ%3D%3D/playlist_duration/30/manifest_duration/30/bui/AY1jyLM2DVJUQj0ttKhqIxfnV0QpwUMdr2SyYCMXvOtvkOxTj0Lw_5PbGa7PD4xh2CPa5AgtrGjf91Rr/spc/l3OVKQS-avdmZVwGqtYw-Wl6a5NQUiKsPEUlc1-7QpMZDZ4F-jziAjgS6LzZgABsYpywthn5cEM/vprv/1/playlist_type/DVR/initcwndbps/1992500/met/1751489419,/mh/k_/mm/44/mn/sn-9gv7zn7e/ms/lva/mv/m/mvi/5/pl/49/rms/lva,lva/dover/11/pacing/0/keepalive/yes/fexp/51355912/mt/1751489072/sparams/expire,ei,ip,id,itag,source,requiressl,ratebypass,live,sgoap,sgovp,rqh,xpc,playlist_duration,manifest_duration,bui,spc,vprv,playlist_type/sig/AJfQdSswRAIgeZogZ3_Dt_8GkseMxP7HkKs8K7JCQJU4BqYTSPFhkMkCIGiCCZUmehLN_27l3_mZQWqa-UIXD48s2ERvX5gpP-n2/lsparams/hls_chunk_host,initcwndbps,met,mh,mm,mn,ms,mv,mvi,pl,rms/lsig/APaTxxMwRgIhAPuRvPQQjr19SNuhT0xMJzQH-cGBDlot3jNFltNUD7DWAiEA19lrfnUvmlARgk5A_cqJdmf6QWGkwtNdUH1PyFi7N5g%3D/playlist/index.m3u8")  # Cambia a archivo si deseas usar video
 #viedo tienda https://www.youtube.com/watch?v=6MMXJrzT5c0
-cap = cv2.VideoCapture("https://manifest.googlevideo.com/api/manifest/hls_playlist/expire/1751665321/ei/SfZnaPygBcGO2_gPiIKVOA/ip/45.177.43.24/id/6MMXJrzT5c0.2/itag/96/source/yt_live_broadcast/requiressl/yes/ratebypass/yes/live/1/sgoap/gir%3Dyes%3Bitag%3D140/sgovp/gir%3Dyes%3Bitag%3D137/rqh/1/hls_chunk_host/rr1---sn-v2uvxoa5jxnhm-hahe.googlevideo.com/xpc/EgVo2aDSNQ%3D%3D/playlist_duration/30/manifest_duration/30/bui/AY1jyLMD3dBKrxXZKnUHaFDzxZm1KAnZWm2odWUrYtibEjeWikrkTDhCKoXX8mysoy3ck5mWJMvCajub/spc/l3OVKayI821dXVeP2QvLevQIX1iQDHnZu0b2EC5q5kJ8HwS_D5iGIu49CGVyBhtGy-ryRbYbfCI/vprv/1/playlist_type/DVR/initcwndbps/1910000/met/1751643722,/mh/GE/mm/44/mn/sn-v2uvxoa5jxnhm-hahe/ms/lva/mv/m/mvi/1/pl/24/rms/lva,lva/dover/11/pacing/0/keepalive/yes/fexp/51355912/mt/1751643386/sparams/expire,ei,ip,id,itag,source,requiressl,ratebypass,live,sgoap,sgovp,rqh,xpc,playlist_duration,manifest_duration,bui,spc,vprv,playlist_type/sig/AJfQdSswRgIhAL0qGJ1Lxo71jUaFkNzotSg6lL0naIzjYO-waWmqxjxdAiEApxXY86qXjgqk0b_YyVedbowQUCsPlN3JmH_oDRnWFRI%3D/lsparams/hls_chunk_host,initcwndbps,met,mh,mm,mn,ms,mv,mvi,pl,rms/lsig/APaTxxMwRQIhALePc4_1i1OAPwfPdy7J5CgYACZwaJCtl3LlZPW4Vw3YAiB8g-5bFEuaD-0x6dGtxkwzHqntXjI3GIhLhsa4gDvC7g%3D%3D/playlist/index.m3u8")
+cap = cv2.VideoCapture("20240927_132041_tp00015.mp4")
 #partido
 #cap = cv2.VideoCapture("partido.mp4")
+
+"""
+Control de velocidad 
+<==>
+"""
+fps = cap.get(cv2.CAP_PROP_FPS)  #PARA QUE SE REPRODUSCA NORMAL 
+wait_time = int(1000 / fps) if fps > 0 else 33
+"""
+<==>
+"""
+
 
 while cap.isOpened():
     ret, frame = cap.read()
@@ -133,6 +144,18 @@ while cap.isOpened():
                             x, y = int((c1[0] + c2[0]) / 2), int((c1[1] + c2[1]) / 2)
                             cv2.putText(output, "Personas juntas", (x, y),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+                            
+        # Índices de keypoints para piernas, pies y centro
+        selected_indices = [15,16]  # Solo índices válidos para 17 keypoints
+        centers = []
+        for kp_person in results.keypoints.xy:
+            kp_np = kp_person.cpu().numpy()
+            # Selecciona solo los keypoints deseados
+            selected_kps = kp_np[selected_indices]
+            if selected_indices:
+                avg_point = np.mean(selected_kps, axis=0)
+                centers.append(avg_point)
+
 
         # Estimar velocidad de persona
         if not hasattr(compare_pose, "prev_centers"):
@@ -155,10 +178,11 @@ while cap.isOpened():
 
             # Mostrar acción solo si la velocidad es mayor o igual a 5 px/s
             if speed is not None:
-                if speed >= 0.2:
+                print(speed)
+                if speed >= 10:
                     x1, y1, x2, y2 = map(int, results.boxes.xyxy[i])
                     cv2.putText(output, f'{action}', (x1, y1 - 10),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 0), 2)
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 0), 2)
                 else:
                     if results.boxes and len(results.boxes.xyxy) > i:
                         x1, y1, x2, y2 = map(int, results.boxes.xyxy[i])
@@ -181,7 +205,7 @@ while cap.isOpened():
     cv2.imshow("YOLOv8 Pose - Tiempo Real", output_resized)
     
     cv2.resizeWindow("YOLOv8 Pose - Tiempo Real",800,600)
-    if cv2.waitKey(1) & 0xFF == ord('q'):
+    if cv2.waitKey(wait_time) & 0xFF == ord('q'):
         break
 
 cap.release()
