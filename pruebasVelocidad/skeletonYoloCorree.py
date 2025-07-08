@@ -2,7 +2,6 @@ import cv2
 import numpy as np
 import os
 from ultralytics import YOLO
-import tempfile
 import lmstudio as lms
 import torch #para ejecutar con gpu
 from PIL import Image
@@ -128,16 +127,16 @@ while cap.isOpened():
             
         # Ver si hay 2 o más personas juntas
         # Calcula la distancia entre el centro de cada persona detectada
-        centers = []
+        centros = []
         for kp_person in results.keypoints.xy:
             kp_np = kp_person.cpu().numpy()
-            center = np.mean(kp_np, axis=0)
-            centers.append(center)
+            centro = np.mean(kp_np, axis=0)
+            centros.append(centro)
 
         # Si hay más de una persona, verifica distancias
-        if len(centers) > 1:
-            for idx1, c1 in enumerate(centers):
-                for idx2, c2 in enumerate(centers):
+        if len(centros) > 1:
+            for idx1, c1 in enumerate(centros):
+                for idx2, c2 in enumerate(centros):
                     if idx1 < idx2:
                         dist = np.linalg.norm(c1 - c2)
                         if dist < 150:  # Puedes ajustar el umbral según el tamaño de la imagen
@@ -147,38 +146,38 @@ while cap.isOpened():
                             
         # Índices de keypoints para piernas, pies y centro
         selected_indices = [15,16]  # Solo índices válidos para 17 keypoints
-        centers = []
+        centros = []
         for kp_person in results.keypoints.xy:
             kp_np = kp_person.cpu().numpy()
             # Selecciona solo los keypoints deseados
             selected_kps = kp_np[selected_indices]
             if selected_indices:
                 avg_point = np.mean(selected_kps, axis=0)
-                centers.append(avg_point)
+                centros.append(avg_point)
 
 
         # Estimar velocidad de persona
         if not hasattr(compare_pose, "prev_centers"):
-            compare_pose.prev_centers = [None] * len(centers)
-            compare_pose.prev_times = [None] * len(centers)
+            compare_pose.prev_centers = [None] * len(centros)
+            compare_pose.prev_times = [None] * len(centros)
 
         current_time = cv2.getTickCount() / cv2.getTickFrequency()
-        for idx, center in enumerate(centers):
+        for idx, centro in enumerate(centros):
             prev_center = compare_pose.prev_centers[idx] if idx < len(compare_pose.prev_centers) else None
             prev_time = compare_pose.prev_times[idx] if idx < len(compare_pose.prev_times) else None
 
             speed = None
             if prev_center is not None and prev_time is not None:
-                dist = np.linalg.norm(center - prev_center)
+                dist = np.linalg.norm(centro - prev_center)
                 dt = current_time - prev_time
                 if dt > 0:
                     speed = dist / dt  # píxeles por segundo
 
-            x, y = int(center[0]), int(center[1])
+            x, y = int(centro[0]), int(centro[1])
 
             # Mostrar acción solo si la velocidad es mayor o igual a 5 px/s
             if speed is not None:
-                print(speed)
+                
                 if speed >= 10:
                     x1, y1, x2, y2 = map(int, results.boxes.xyxy[i])
                     cv2.putText(output, f'{action}', (x1, y1 - 10),
@@ -194,10 +193,10 @@ while cap.isOpened():
 
             # Actualizar valores previos
             if idx < len(compare_pose.prev_centers):
-                compare_pose.prev_centers[idx] = center
+                compare_pose.prev_centers[idx] = centro
                 compare_pose.prev_times[idx] = current_time
             else:
-                compare_pose.prev_centers.append(center)
+                compare_pose.prev_centers.append(centro)
                 compare_pose.prev_times.append(current_time)
 
     output_resized = cv2.resize(output, (800, 600))
@@ -205,8 +204,18 @@ while cap.isOpened():
     cv2.imshow("YOLOv8 Pose - Tiempo Real", output_resized)
     
     cv2.resizeWindow("YOLOv8 Pose - Tiempo Real",800,600)
-    if cv2.waitKey(wait_time) & 0xFF == ord('q'):
+    key = cv2.waitKey(wait_time) & 0xFF
+    if key == ord('q'):
         break
+    elif key == ord(' '):
+        if wait_time == 0:
+            wait_time = int(1000 / fps) if fps > 0 else 33
+        else:
+            wait_time = 0
+    elif key == ord('w'):
+        wait_time = 1  # Acelera el video
+    else:
+        wait_time = int(1000 / fps) if fps > 0 else 33
 
 cap.release()
 cv2.destroyAllWindows()
