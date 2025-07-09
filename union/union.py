@@ -9,7 +9,7 @@ tipo_modelo = "DPT_Large"
 midas = torch.hub.load("intel-isl/MiDaS", tipo_modelo)
 midas.eval()
 
-cap = cv2.VideoCapture("vel.mp4")
+cap = cv2.VideoCapture("students_01.mp4")
 device = torch.device("cuda")
 midas.to(device)
 model = YOLO("yolov8s-pose.pt").to(device)
@@ -23,7 +23,7 @@ else:
     transform = midas_transforms.small_transform
 
 # === CONFIGURACIÓN ===
-POSES_DIR = "..\Proyect - 06\Skeleton v2 - YOLO\poses_guardadas"
+POSES_DIR = ".\poses_guardadas"
 os.makedirs(POSES_DIR, exist_ok=True)
 
 # === CONTROL DE VISUALIZACIÓN ===
@@ -88,12 +88,18 @@ def get_or_extract_pose(name, video_path):
 
 # === CARGA DE POSES DE REFERENCIA ===
 print("Cargando poses de referencia...")
-walking_pose = get_or_extract_pose("caminando", "walking.mp4")
+walking_pose = get_or_extract_pose("caminando_hori", "camiar_hori.mp4")
+walkin_pose_old = get_or_extract_pose("caminando","walking.mp4")
+aim_pose_hori = get_or_extract_pose("apuntando_hori","apuntar.mp4")
 sitting_pose = get_or_extract_pose("sentado", "sit.mp4")
+crouching_hori = get_or_extract_pose("agachar_hori","agachar_hori.mp4")
 
 reference_poses = {
-    "Caminando": walking_pose,
+    "Caminando_hori": walking_pose,
+    "Caminando_old": walkin_pose_old,
     "Sentado": sitting_pose,
+    "Apuntando hori": aim_pose_hori,
+    "Agachado hori": crouching_hori
 }
 
 
