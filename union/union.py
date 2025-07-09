@@ -9,7 +9,8 @@ tipo_modelo = "DPT_Large"
 midas = torch.hub.load("intel-isl/MiDaS", tipo_modelo)
 midas.eval()
 
-cap = cv2.VideoCapture("vel.mp4")
+cap = cv2.VideoCapture("C:\\Users\\luisi\\OneDrive\\Escritorio\\vel.mp4")
+#cap = cv2.VideoCapture("recorte.mp4")
 device = torch.device("cuda")
 midas.to(device)
 model = YOLO("yolov8s-pose.pt").to(device)
